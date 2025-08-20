@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Image Compressor — JPG/JPEG/PNG (Up to 20, ≤ 5 MB each)</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #141822;
+    --muted: #98a2b3;
+    --text: #e5e7eb;
+    --accent: #5b9cff;
+    --accent-2: #7c4dff;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --err: #ef4444;
+    --card: #1a2030;
+    --border: #263046;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background: linear-gradient(180deg, #0f1115 0%, #0c0e13 100%); color: var(--text);
+  }
+  header {
+    padding: 24px 20px 8px; border-bottom: 1px solid #141827;
+    background: radial-gradient(1200px 600px at 20% -20%, rgba(92, 156, 255, 0.15), transparent 60%);
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0.2px; }
+  p.sub { margin: 0; color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 20px 40px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 16px;
+  }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; align-items: end; }
+  .field { display: grid; gap: 6px; }
+  label { font-size: 12px; color: var(--muted); }
+  input[type="file"] {
+    display: inline-block; padding: 10px; border: 1px dashed #2a3652; border-radius: 10px; background: #111524; color: var(--text);
+  }
+  input[type="number"], input[type="color"] {
+    width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #223055; background: #12182a; color: var(--text);
+  }
+  input[type="range"] { width: 100%; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    appearance: none; border: 1px solid #25407a; background: linear-gradient(180deg, #1a2a4a, #152239);
+    color: #cfe1ff; padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 5px 16px rgba(3,8,23,0.6);
+  }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary { border-color: #34425f; background: #151b2a; color: #d6d8dd; }
+  .status { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .status strong { color: #dbe7ff; }
+  .grid {
+    display: grid; gap: 14px; margin-top: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    display: grid; grid-template-rows: auto auto auto; gap: 8px;
+  }
+  .thumb {
+    width: 100%; height: 180px; object-fit: cover; background: #0c101a;
+    border-bottom: 1px solid #1f2a44;
+  }
+  .body { padding: 10px 12px; display: grid; gap: 6px; }
+  .kv { font-size: 12px; color: var(--muted); }
+  .kv strong { color: #e8ecf7; }
+  .ratio.ok { color: var(--ok); }
+  .ratio.warn { color: var(--warn); }
+  .ratio.err { color: var(--err); }
+  .actions {
+    display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1px solid #1f2a44;
+  }
+  a.download {
+    text-decoration: none; padding: 8px 10px; border-radius: 8px; background: #21365e; border: 1px solid #2c4c8e; color: #dbe7ff; font-weight: 600;
+  }
+  .txt-btn { background: transparent; border: 0; color: #b6c0d4; cursor: pointer; padding: 0; }
+  .errors { color: var(--err); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+  .badge { padding: 2px 6px; border-radius: 999px; font-size: 11px; background: #203050; border: 1px solid #2b3f66; color: #bcd1ff; }
+  .toggles label { display: inline-flex; align-items: center; gap: 8px; margin-right: 16px; }
+  .toggles input[type="checkbox"] { transform: translateY(1px); }
+  .footer-note { margin-top: 16px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Image Compressor</h1>
+    <p class="sub">JPG / JPEG / PNG • Up to 20 images • Max 5 MB each • All in your browser</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="controls">
+        <div class="field">
+          <label for="fileInput">Choose images</label>
+          <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple />
+          <div class="hint">Select up to 20 images (≤ 5 MB each).</div>
+        </div>
+
+        <div class="field">
+          <label for="quality">JPEG quality: <span id="qualityVal">0.80</span></label>
+          <input id="quality" type="range" min="0.1" max="1" step="0.05" value="0.8" />
+          <div class="hint">Only applies to JPEG output.</div>
+        </div>
+
+        <div class="field">
+          <label>Resize (max width × height)</label>
+          <div class="row">
+            <input id="maxW" type="number" min="1" step="1" value="1920" />
+            <span>×</span>
+            <input id="maxH" type="number" min="1" step="1" value="1080" />
+          </div>
+          <div class="hint">Keeps aspect ratio. Leave large to keep original size.</div>
+        </div>
+
+        <div class="field">
+          <label>PNG → JPEG conversion</label>
+          <div class="row">
+            <label class="badge">Optional</label>
+            <input id="convertPng" type="checkbox" />
+            <span class="hint">Better size than PNG. Transparency filled with color.</span>
+          </div>
+          <div class="row">
+            <label for="bgColor">Background</label>
+            <input id="bgColor" type="color" value="#ffffff" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Metadata</label>
+          <div class="toggles">
+            <label><input id="stripMeta" type="checkbox" checked /> Strip EXIF/metadata</label>
+          </div>
+          <div class="hint">Drawing to canvas removes most metadata.</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button id="compressBtn" class="btn" disabled>Compress images</button>
+        <button id="clearBtn" class="btn secondary">Clear</button>
+        <span id="counts" class="hint"></span>
+      </div>
+      <div id="status" class="status"></div>
+      <div id="errors" class="errors" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section id="gallery" class="grid" aria-live="polite"></section>
+    <div class="footer-note">Tip: You can recompress any image card after changing settings.</div>
+  </main>
+
+<script>
+(() => {
+  const $ = (sel, root = document) => root.querySelector(sel);
+
+  const fileInput = $('#fileInput');
+  const quality = $('#quality');
+  const qualityVal = $('#qualityVal');
+  const maxW = $('#maxW');
+  const maxH = $('#maxH');
+  const stripMeta = $('#stripMeta');
+  const convertPng = $('#convertPng');
+  const bgColor = $('#bgColor');
+
+  const compressBtn = $('#compressBtn');
+  const clearBtn = $('#clearBtn');
+  const statusEl = $('#status');
+  const errorsEl = $('#errors');
+  const gallery = $('#gallery');
+  const counts = $('#counts');
+
+  const MAX_FILES = 20;
+  const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+
+  let selectedFiles = []; // [{file, id}]
+  let cards = new Map();  // id -> card elements
+  let objectURLs = new Set(); // for cleanup
+
+  quality.addEventListener('input', () => {
+    qualityVal.textContent = Number(quality.value).toFixed(2);
+  });
+
+  clearBtn.addEventListener('click', clearAll);
+
+  fileInput.addEventListener('change', () => {
+    errorsEl.textContent = '';
+    resetGallery();
+    const files = Array.from(fileInput.files || []);
+    const {accepted, errors} = validateFiles(files);
+    if (errors.length) errorsEl.textContent = errors.join('\n');
+
+    selectedFiles = accepted.map((f, i) => ({ file: f, id: `${Date.now()}_${i}` }));
+    counts.textContent = selectedFiles.length ? `${selectedFiles.length} ready` : '';
+    compressBtn.disabled = selectedFiles.length === 0;
+    // Render cards with original preview and info
+    for (const item of selectedFiles) {
+      const card = createCard(item.file, item.id);
+      gallery.appendChild(card.root);
+      cards.set(item.id, card);
+    }
+  });
+
+  compressBtn.addEventListener('click', async () => {
+    if (!selectedFiles.length) return;
+    disableUI(true);
+    statusEl.innerHTML = `Compressing <strong>0 / ${selectedFiles.length}</strong>...`;
+    let done = 0;
+
+    for (const item of selectedFiles) {
+      try {
+        const opts = currentOptions();
+        await compressOne(item, opts);
+      } catch (err) {
+        console.error(err);
+        appendError(`Failed to compress ${item.file.name}: ${err.message || err}`);
+      } finally {
+        done++;
+        statusEl.innerHTML = `Compressing <strong>${done} / ${selectedFiles.length}</strong>...`;
+      }
+    }
+    statusEl.innerHTML = `Done. <strong>${done}</strong> image${done !== 1 ? 's' : ''} processed.`;
+    disableUI(false);
+  });
+
+  function currentOptions() {
+    return {
+      quality: clamp(parseFloat(quality.value) || 0.8, 0.1, 1),
+      maxW: Math.max(1, parseInt(maxW.value || '1', 10)),
+      maxH: Math.max(1, parseInt(maxH.value || '1', 10)),
+      stripMeta: !!stripMeta.checked,
+      convertPng: !!convertPng.checked,
+      bgColor: bgColor.value || '#ffffff',
+    };
+  }
+
+  function validateFiles(files) {
+    const accepted = [];
+    const errors = [];
+    if (files.length > MAX_FILES) {
+      errors.push(`You selected ${files.length}. Please select up to ${MAX_FILES} images.`);
+    }
+    const limit = files.slice(0, MAX_FILES);
+    for (const f of limit) {
+      const type = (f.type || '').toLowerCase();
+      const name = f.name || 'file';
+      if (!(type === 'image/jpeg' || type === 'image/png' || name.match(/\.(jpe?g|png)$/i))) {
+        errors.push(`${name}: Unsupported type (only JPG/JPEG/PNG).`);
+        continue;
+      }
+      if (f.size > MAX_SIZE) {
+        errors.push(`${name}: ${formatBytes(f.size)} exceeds 5 MB limit.`);
+        continue;
+      }
+      accepted.push(f);
+    }
+    return {accepted, errors};
+  }
+
+  function createCard(file, id) {
+    const root = document.createElement('div');
+    root.className = 'card';
+    const img = document.createElement('img');
+    img.className = 'thumb';
+    img.alt = file.name;
+
+    const body = document.createElement('div');
+    body.className = 'body';
+    const origP = document.createElement('div');
+    origP.className = 'kv';
+    const compP = document.createElement('div');
+    compP.className = 'kv';
+    const ratioP = document.createElement('div');
+    ratioP.className = 'kv';
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const dl = document.createElement('a');
+    dl.className = 'download';
+    dl.textContent = 'Download';
+    dl.style.display = 'none';
+    dl.setAttribute('download', suggestedDownloadName(file.name, file.type));
+    const rec = document.createElement('button');
+    rec.className = 'txt-btn';
+    rec.textContent = 'Recompress';
+
+    actions.append(dl, rec);
+    body.append(origP, compP, ratioP);
+    root.append(img, body, actions);
+
+    // Original preview
+    const url = URL.createObjectURL(file);
+    objectURLs.add(url);
+    img.src = url;
+
+    // Fill original info after decoding dimensions
+    readDimensions(file).then(dim => {
+      origP.innerHTML = `<strong>Original:</strong> ${formatBytes(file.size)}, ${dim.w}×${dim.h}`;
+    }).catch(() => {
+      origP.innerHTML = `<strong>Original:</strong> ${formatBytes(file.size)}`;
+    });
+
+    // Hook recompress
+    rec.addEventListener('click', async () => {
+      disableUI(true);
+      try {
+        await compressOne({file, id}, currentOptions());
+      } catch (err) {
+        appendError(`Failed to recompress ${file.name}: ${err.message || err}`);
+      } finally {
+        disableUI(false);
+      }
+    });
+
+    return {
+      root, img, origP, compP, ratioP, dl
+    };
+  }
+
+  async function compressOne(item, opts) {
+    const {file, id} = item;
+    const card = cards.get(id);
+    if (!card) return;
+
+    const result = await compressFile(file, opts);
+    const ratio = result.blob.size / file.size;
+    const ratioPct = (1 - ratio) * 100;
+    const ratioClass = ratio < 0.05 ? 'ok' : (ratio < 0.15 ? 'ok' : (ratio < 0.3 ? 'warn' : (ratio < 0.95 ? 'warn' : 'err')));
+
+    card.compP.innerHTML = `<strong>Compressed:</strong> ${formatBytes(result.blob.size)}, ${result.w}×${result.h} (${result.mime.split('/')[1].toUpperCase()})`;
+    card.ratioP.innerHTML = `<strong>Reduction:</strong> <span class="ratio ${ratioClass}">${ratioPct.toFixed(1)}% smaller</span>`;
+    const blobUrl = URL.createObjectURL(result.blob);
+    objectURLs.add(blobUrl);
+    card.dl.href = blobUrl;
+    card.dl.download = result.name;
+    card.dl.style.display = 'inline-block';
+  }
+
+  async function compressFile(file, opts) {
+    // Decode, respecting EXIF orientation when available
+    const decoded = await decodeToCanvas(file, opts);
+    const {canvas, w, h, mimeFromSource} = decoded;
+
+    // Decide output MIME
+    const srcIsPng = mimeFromSource === 'image/png';
+    const outMime = (srcIsPng && opts.convertPng) ? 'image/jpeg' : (srcIsPng ? 'image/png' : 'image/jpeg');
+    const outQuality = outMime === 'image/jpeg' ? opts.quality : undefined;
+
+    // If converting PNG with transparency to JPEG, fill background
+    if (srcIsPng && opts.convertPng) {
+      const ctx = canvas.getContext('2d');
+      const composite = document.createElement('canvas');
+      composite.width = canvas.width;
+      composite.height = canvas.height;
+      const cctx = composite.getContext('2d');
+      cctx.fillStyle = opts.bgColor || '#ffffff';
+      cctx.fillRect(0, 0, composite.width, composite.height);
+      cctx.drawImage(canvas, 0, 0);
+      // replace canvas
+      canvas.width = composite.width;
+      canvas.height = composite.height;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(composite, 0, 0);
+    }
+
+    const blob = await canvasToBlob(canvas, outMime, outQuality);
+    const outName = makeOutputName(file.name, outMime);
+    return { blob, w: canvas.width, h: canvas.height, mime: outMime, name: outName };
+  }
+
+  function makeOutputName(name, mime) {
+    const base = name.replace(/\.[^.]+$/, '');
+    const ext = mime === 'image/png' ? 'png' : 'jpg';
+    return `${base}_compressed.${ext}`;
+  }
+  function suggestedDownloadName(name, mime) {
+    return makeOutputName(name, mime || 'image/jpeg');
+  }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function formatBytes(bytes) {
+    const units = ['B','KB','MB','GB'];
+    let i = 0; let b = bytes;
+    while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }
+    const prec = i === 0 ? 0 : 2;
+    return `${b.toFixed(prec)} ${units[i]}`;
+  }
+
+  function appendError(msg) {
+    errorsEl.textContent += (errorsEl.textContent ? '\n' : '') + msg;
+  }
+
+  function resetGallery() {
+    for (const url of objectURLs) URL.revokeObjectURL(url);
+    objectURLs.clear();
+    gallery.innerHTML = '';
+    statusEl.textContent = '';
+    counts.textContent = '';
+    errorsEl.textContent = '';
+    cards.clear();
+  }
+
+  function clearAll() {
+    fileInput.value = '';
+    selectedFiles = [];
+    resetGallery();
+    compressBtn.disabled = true;
+  }
+
+  function disableUI(disabled) {
+    compressBtn.disabled = disabled || selectedFiles.length === 0;
+    clearBtn.disabled = disabled;
+    fileInput.disabled = disabled;
+  }
+
+  async function readDimensions(file) {
+    try {
+      if ('createImageBitmap' in window) {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const dim = { w: bmp.width, h: bmp.height };
+        bmp.close && bmp.close();
+        return dim;
+      }
+    } catch (_) {}
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { resolve({ w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(url); };
+      img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+      img.src = url;
+    });
+  }
+
+  async function decodeToCanvas(file, opts) {
+    const maxW = opts.maxW, maxH = opts.maxH;
+    // Try ImageBitmap (handles EXIF orientation)
+    try {
+      if ('createImageBitmap' in window) {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const { sw, sh } = scaleToFit(bmp.width, bmp.height, maxW, maxH);
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bmp, 0, 0, sw, sh);
+        bmp.close && bmp.close();
+        return { canvas, w: sw, h: sh, mimeFromSource: (file.type || '').toLowerCase() || guessMime(file.name) };
+      }
+    } catch (e) {
+      // fallback below
+    }
+    // Fallback via HTMLImageElement (may ignore EXIF orientation)
+    const img = await loadImageFromFile(file);
+    const { sw, sh } = scaleToFit(img.naturalWidth || img.width, img.naturalHeight || img.height, maxW, maxH);
+    const canvas = document.createElement('canvas');
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, sw, sh);
+    return { canvas, w: sw, h: sh, mimeFromSource: (file.type || '').toLowerCase() || guessMime(file.name) };
+  }
+
+  function scaleToFit(w, h, maxW, maxH) {
+    let ratio = Math.min(maxW / w, maxH / h);
+    if (!isFinite(ratio) || ratio <= 0) ratio = 1;
+    ratio = Math.min(1, ratio); // never upscale
+    return { sw: Math.max(1, Math.round(w * ratio)), sh: Math.max(1, Math.round(h * ratio)) };
+  }
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+      img.src = url;
+    });
+  }
+
+  function guessMime(name) {
+    const m = String(name).toLowerCase().match(/\.(png|jpe?g)$/);
+    if (!m) return 'image/jpeg';
+    return m[1] === 'png' ? 'image/png' : 'image/jpeg';
+  }
+
+  function canvasToBlob(canvas, mime, quality) {
+    return new Promise((resolve, reject) => {
+      const q = typeof quality === 'number' ? quality : undefined;
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Encoding failed'));
+          resolve(blob);
+        }, mime, q);
+      } else {
+        // very old fallback
+        const dataURL = canvas.toDataURL(mime, q);
+        const blob = dataURLToBlob(dataURL);
+        resolve(blob);
+      }
+    });
+  }
+
+  function dataURLToBlob(dataURL) {
+    const [meta, data] = dataURL.split(',');
+    const isBase64 = /;base64$/i.test(meta);
+    const mime = (meta.match(/data:([^;]+)/i) || [])[1] || 'application/octet-stream';
+    const bin = isBase64 ? atob(data) : decodeURIComponent(data);
+    const len = bin.length;
+    const u8 = new Uint8Array(len);
+    for (let i = 0; i < len; i++) u8[i] = bin.charCodeAt(i);
+    return new Blob([u8], { type: mime });
+  }
+})();
+</script>
+</body>
+</html>
+```
